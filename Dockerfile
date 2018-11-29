@@ -34,3 +34,20 @@ RUN tar -zxvf $HOME/Flask-CAS.tar.gz -C $HOME
 RUN cd $HOME/Flask-CAS-internal && python setup.py install
 
 RUN mkdir $HOME/incubator-superset
+
+WORKDIR $HOME/incubator-superset
+
+COPY ./ ./
+
+RUN pip install --upgrade setuptools pip
+RUN pip install -e . && pip install -r requirements-dev.txt
+
+ENV PATH=/home/work/incubator-superset/superset/bin:$PATH \
+    PYTHONPATH=./superset/:$PYTHONPATH
+
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN ln -s usr/local/bin/docker-entrypoint.sh /entrypoint.sh # backwards compat
+
+COPY ./superset ./superset
+RUN chown -R work:work $HOME
