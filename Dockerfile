@@ -12,6 +12,8 @@ WORKDIR $HOME/incubator-superset
 COPY ./ ./
 
 COPY ./superset ./superset
+
+USER 0
 RUN chown -R work:work $HOME
 
 USER work

@@ -2,7 +2,6 @@ const path = require('path');
 const webpack = require('webpack');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const CleanWebpackPlugin = require('clean-webpack-plugin');
-const Es3ifyPlugin = require('es3ify-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
@@ -28,8 +27,6 @@ const {
 const isDevMode = mode !== 'production';
 
 const plugins = [
-  new Es3ifyPlugin(),
-
   // creates a manifest.json mapping of name to hashed output used in template files
   new WebpackAssetsManifest({
     publicPath: true,
@@ -197,6 +194,14 @@ if (!isDevMode) {
       cache: true,
       parallel: true,
       extractComments: true,
+      terserOptions: {
+        output: {
+         keep_quoted_props: true
+       },
+       compress: {
+         properties: false
+       },
+     },
     }),
   ];
 }
