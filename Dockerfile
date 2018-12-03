@@ -51,3 +51,8 @@ RUN ln -s usr/local/bin/docker-entrypoint.sh /entrypoint.sh # backwards compat
 
 COPY ./superset ./superset
 RUN chown -R work:work $HOME
+
+USER work
+
+RUN cd superset/assets && yarn
+RUN cd superset/assets && npm run build
