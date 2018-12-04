@@ -24,7 +24,7 @@ export function fetchAllSlices(userId) {
     if (sliceEntities.lastUpdated === 0) {
       dispatch(fetchAllSlicesStarted());
 
-      const uri = `/sliceaddview/api/read?_flt_0_created_by=${userId}`;
+      const uri = `/sliceaddview/read_slices`;
       return $.ajax({
         url: uri,
         type: 'GET',
