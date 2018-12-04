@@ -194,6 +194,14 @@ if (!isDevMode) {
       cache: true,
       parallel: true,
       extractComments: true,
+      terserOptions: {
+        output: {
+         keep_quoted_props: true
+       },
+       compress: {
+         properties: false
+       },
+     },
     }),
   ];
 }
