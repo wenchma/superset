@@ -55,4 +55,3 @@ RUN chown -R work:work $HOME
 USER work
 
 RUN cd superset/assets && yarn
-RUN cd superset/assets && npm run build
