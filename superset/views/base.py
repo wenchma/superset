@@ -304,9 +304,10 @@ def check_ownership(obj, raise_if_false=True):
     owners = []
 
     from superset import app
-    from superset.models.core import Dashboard
+    from superset.models.core import Dashboard, Slice
     if (not app.config['ENABLE_CUSTOM_ROLE_RESOURCE_SHOW'] or app.config['ENABLE_DASHBOARD_SHARE_EDIT_IN_CUSTOM_ROLE']) or \
-            (not app.config['ENABLE_DASHBOARD_SHARE_EDIT_IN_CUSTOM_ROLE'] and not isinstance(orig_obj, Dashboard)):
+            (not app.config['ENABLE_DASHBOARD_SHARE_EDIT_IN_CUSTOM_ROLE'] and not isinstance(orig_obj, Dashboard) and \
+            not isinstance(orig_obj, Slice)):
         if hasattr(orig_obj, 'owners'):
             owners += orig_obj.owners
         if hasattr(orig_obj, 'owner'):

@@ -9,8 +9,6 @@ ENV LANG=C.UTF-8 \
 
 WORKDIR $HOME/incubator-superset
 
-COPY ./ ./
-
 COPY ./superset ./superset
 
 USER 0
@@ -18,7 +16,6 @@ RUN chown -R work:work $HOME
 
 USER work
 
-RUN cd superset/assets && yarn
 RUN cd superset/assets && npm run build
 
 HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]

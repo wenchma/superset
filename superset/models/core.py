@@ -17,7 +17,7 @@ import numpy
 import pandas as pd
 import sqlalchemy as sqla
 from sqlalchemy import (
-    Boolean, Column, create_engine, DateTime, ForeignKey, Integer,
+    Boolean, Column, create_engine, DateTime, ForeignKey, Integer, Date,
     MetaData, String, Table, Text,
 )
 from sqlalchemy.engine import url

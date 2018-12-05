@@ -4,6 +4,7 @@ import inspect
 import logging
 import os
 import re
+import requests
 import time
 import traceback
 from urllib import parse
@@ -564,6 +565,22 @@ class SliceAddView(SliceModelView):  # noqa
         'datasource_name_text', 'datasource_link',
         'owners', 'modified', 'changed_on']
 
+    @expose('/read_slices', methods=['GET'])
+    def read_slices(self):
+        slice_response = self.api_read()
+        if slice_response.status_code != 200:
+            return '{}'
+        results = json.loads(slice_response.data, encoding='UTF-8')
+        need_remove = 0
+        user_filter = None
+        if g.user:
+            user_filter = ("%s %s") % (g.user.first_name,g.user.last_name)
+        for slice_inst in results['result']:
+            if user_filter and user_filter not in slice_inst['owners']:
+                results['result'].remove(slice_inst)
+                need_remove += 1
+        results['count'] -= need_remove
+        return json_success(json.dumps(results), slice_response.status_code)
 
 appbuilder.add_view_no_menu(SliceAddView)
 
