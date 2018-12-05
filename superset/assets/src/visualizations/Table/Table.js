@@ -172,7 +172,7 @@ function TableVis(element, props) {
       return null;
     })
     .classed('text-right', d => d.isMetric)
-    .attr('title', d => (!Number.isNaN(d.val) ? formatValue(d.val) : null))
+    .attr('title', d => (typeof d.val === "number") ? ((!isNaN(d.val) ? formatValue(d.val) : null)) : d.val)
     .attr('data-sort', d => (d.isMetric) ? d.val : null)
     // Check if the dashboard currently has a filter for each row
     .classed('filtered', d =>
