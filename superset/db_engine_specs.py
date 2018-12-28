@@ -174,13 +174,47 @@ class BaseEngineSpec(object):
         return df
 
     @staticmethod
+    def get_table(table_name, schema, database_id):
+        from superset.connectors.sqla.models import SqlaTable
+        with db.session.no_autoflush:
+            if schema == '' or not schema:
+                table_exist = db.session.query(SqlaTable).filter(
+                    SqlaTable.table_name == table_name,
+                    SqlaTable.database_id == database_id,
+                ).first()
+            else:
+                table_exist = db.session.query(SqlaTable).filter(
+                    SqlaTable.table_name == table_name,
+                    SqlaTable.schema == schema,
+                    SqlaTable.database_id == database_id,
+                ).first()
+        return table_exist
+
+    @staticmethod
+    def delete_table(table_name, schema, database_id):
+        table_exist = BaseEngineSpec.get_table(table_name, schema, database_id)
+        if table_exist:
+            db.session.delete(table_exist)
+            db.session.commit()
+
+    @staticmethod
+    def excel_sheet_to_df(**kwargs):
+        df = pandas.read_excel(**kwargs)
+        return df
+
+    @staticmethod
     def df_to_db(df, table, **kwargs):
+        replace_strategy = kwargs['if_exists']
+        if replace_strategy == 'repacedata':
+            kwargs['if_exists'] = 'replace'
         df.to_sql(**kwargs)
-        table.user_id = g.user.id
-        table.schema = kwargs['schema']
-        table.fetch_metadata()
-        db.session.add(table)
-        db.session.commit()
+
+        if not BaseEngineSpec.get_table(table.table_name, kwargs['schema'], table.database_id):
+            table.user_id = g.user.id
+            table.schema = kwargs['schema']
+            table.fetch_metadata()
+            db.session.add(table)
+            db.session.commit()
 
     @staticmethod
     def create_table_from_csv(form, table):
@@ -221,6 +255,159 @@ class BaseEngineSpec(object):
         }
 
         BaseEngineSpec.df_to_db(**df_to_db_kwargs)
+
+    @staticmethod
+    def convert_str_to_int(num_str):
+        result = 256
+        try:
+            result = int(num_str)
+        except ValueError:
+            logging.warn('Invalid custom type map int varchar/nvarchar len')
+        return result
+
+
+    @staticmethod
+    def convert_str_sqlarchmy_type(type_map_str, df):
+
+        import ast
+        custom_type_map_dict = {}
+        if type_map_str and len(type_map_str) > 8:
+            custom_type_map_dict = ast.literal_eval(type_map_str)
+        result = {}
+        # supported types
+        sqla_type_name_map = {
+            "bigint": sqla.types.BigInteger(),
+            'bool': sqla.types.Boolean(),
+            'date': sqla.types.Date(),
+            'datetime': sqla.types.DateTime(),
+            'float': sqla.types.Float(),
+            'int': sqla.types.Integer(),
+            'interval': sqla.types.Interval(),
+            'largebinary': sqla.types.LargeBinary(),
+            'blob': sqla.types.BLOB(),
+            'numeric': sqla.types.Numeric(),
+            'smallinteger': sqla.types.SmallInteger(),
+            'varchar': sqla.types.VARCHAR(),
+            'text': sqla.types.Text(),
+            'time': sqla.types.Time(),
+            'decimal': sqla.types.DECIMAL(),
+            'nvarchar': sqla.types.NVARCHAR(),
+            'timestamp': sqla.types.TIMESTAMP(),
+            'datetime64': sqla.types.DateTime(),
+            'int64': sqla.types.BigInteger(),
+            'float64': sqla.types.DECIMAL(),
+
+        }
+
+        df_field_type_map = {}
+        for field, value in df.dtypes.items():
+            df_field_type_map[field] = value
+
+        for field, series in df.items():
+            if df_field_type_map[field].kind == 'O':
+                max_len = max([len(item) for item in series])
+                if max_len < 50:
+                    result[field] = sqla.types.VARCHAR(50)
+                elif max_len < 6000:
+                    max_len = int(max_len * 1.5)
+                    result[field] = sqla.types.VARCHAR(max_len)
+                else:
+                    result[field] = sqla.types.Text()
+            elif df_field_type_map[field].kind == 'S':
+                max_len = max([len(item) for item in series])
+                if max_len < 50:
+                    result[field] = sqla.types.VARCHAR(50)
+                elif max_len < 6000:
+                    max_len = int(max_len * 1.5)
+                    result[field] = sqla.types.VARCHAR(max_len)
+                else:
+                    result[field] = sqla.types.Text()
+            elif df_field_type_map[field].kind == 'U':
+                max_len = max([len(item) for item in series])
+                if max_len < 50:
+                    result[field] = sqla.types.NVARCHAR(50)
+                elif max_len < 6000:
+                    max_len = int(max_len * 1.5)
+                    result[field] = sqla.types.NVARCHAR(max_len)
+                else:
+                    result[field] = sqla.types.Text()
+            elif df_field_type_map[field].kind == 'f':
+                result[field] = sqla.types.DECIMAL()
+
+        import re
+        for fieldname in custom_type_map_dict.keys():
+            fieldtype_tmp = custom_type_map_dict.get(fieldname)
+            fieldtype = fieldtype_tmp.lower()
+            if fieldtype in sqla_type_name_map:
+                result[fieldname] = sqla_type_name_map.get(fieldtype)
+            elif fieldtype.find('nvarchar') >= 0:   # special types
+                field_len_str = re.sub(r'\D', "", fieldtype)
+                if field_len_str and len(field_len_str) > 0:
+                    field_len = BaseEngineSpec.convert_str_to_int(field_len_str)
+                    result[fieldname] = sqla.types.NVARCHAR(field_len)
+            elif fieldtype.find('varchar') >= 0:
+                field_len_str = re.sub(r'\D', "", fieldtype)
+                if field_len_str and len(field_len_str) > 0:
+                    field_len = BaseEngineSpec.convert_str_to_int(field_len_str)
+                    result[fieldname] = sqla.types.VARCHAR(field_len)
+        return result
+
+
+    @staticmethod
+    def create_table_from_excel(form, excel_filepath, table):
+        def _allowed_file(filename):
+            # Only allow specific file extensions as specified in the config
+            extension = os.path.splitext(filename)[1]
+            return extension and extension[1:] in config['ALLOWED_EXTENSIONS']
+
+        filename = secure_filename(form.csv_file.data.filename)
+        if not _allowed_file(filename):
+            raise Exception('Invalid file type selected')
+        # 'skip_blank_lines': form.skip_blank_lines.data,
+        excel = xlrd.open_workbook(excel_filepath)
+        from superset.connectors.sqla.models import SqlaTable
+        typemap = {}
+
+        for sheet in excel.sheets():
+            if sheet.nrows == 0:
+                continue
+
+            tab_name = form.name.data + "_" + sheet.name
+            skiprows = 0
+            r = 0
+            while r < 50 and r < sheet.nrows:
+                if sheet.row(r)[0].value != '' and sheet.row(r)[sheet.ncols - 1].value != '':
+                    skiprows = r
+                    break
+                r = r + 1
+            kwargs = {
+                'io': excel_filepath,
+                'sheetname': sheet.name,
+                'header': form.header.data if form.header.data else 0,
+                'index_col': form.index_col.data,
+                'skiprows': form.skiprows.data if form.skiprows.data and form.skiprows.data > 0 else skiprows,
+                'na_values': ['9999'],
+            }
+            df = BaseEngineSpec.excel_sheet_to_df(**kwargs)
+
+            if table.table_name != tab_name:
+                table = SqlaTable(table_name=tab_name)
+            table.database = form.data.get('con')
+            table.database_id = table.database.id
+            df_to_db_kwargs = {
+                'table': table,
+                'df': df,
+                'name': tab_name,
+                'con': create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
+                'schema': form.schema.data,
+                'if_exists': form.if_exists.data,
+                'index': form.index.data,
+                'index_label': form.index_label.data,
+                'chunksize': 10000,
+                'dtype': BaseEngineSpec.convert_str_sqlarchmy_type(form.sep.data, df),
+            }
+
+            BaseEngineSpec.df_to_db(**df_to_db_kwargs)
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
