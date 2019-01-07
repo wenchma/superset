@@ -44,7 +44,7 @@ ADMIN_ONLY_VIEW_MENUS = {
 }
 
 ALPHA_ONLY_VIEW_MENUS = {
-    'Upload a CSV',
+    'Upload a Excel',
 }
 
 ADMIN_ONLY_PERMISSIONS = {
@@ -385,7 +385,7 @@ class SupersetSecurityManager(SecurityManager):
             logging.info("add %s on %s to role %s" % (permission_name, view_menu_name, role.name))
 
         permission_name = 'menu_access'
-        view_menu_name = 'Upload a CSV'
+        view_menu_name = 'Upload a Excel'
         permission = self.find_permission(permission_name)
         view_menu = self.find_view_menu(view_menu_name)
         pv = None

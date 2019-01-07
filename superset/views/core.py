@@ -350,7 +350,7 @@ appbuilder.add_view_no_menu(DatabaseAsync)
 class CsvToDatabaseView(SimpleFormView):
     form = CsvToDatabaseForm
     form_template = 'superset/form_view/csv_to_database_view/edit.html'
-    form_title = _('CSV to Database configuration')
+    form_title = _('Excel to Database configuration')
     add_columns = ['database', 'schema', 'table_name']
 
     def form_get(self, form):
@@ -368,7 +368,7 @@ class CsvToDatabaseView(SimpleFormView):
         schema_name = form.schema.data or ''
 
         if not self.is_schema_allowed(database, schema_name):
-            message = _('Database "{0}" Schema "{1}" is not allowed for csv uploads. '
+            message = _('Database "{0}" Schema "{1}" is not allowed for excel uploads. '
                         'Please contact Superset Admin'.format(database.database_name,
                                                                schema_name))
             flash(message, 'danger')
@@ -381,10 +381,22 @@ class CsvToDatabaseView(SimpleFormView):
         try:
             utils.ensure_path_exists(config['UPLOAD_FOLDER'])
             csv_file.save(path)
-            table = SqlaTable(table_name=form.name.data)
-            table.database = form.data.get('con')
-            table.database_id = table.database.id
-            table.database.db_engine_spec.create_table_from_csv(form, table)
+            if csv_filename.lower().endswith("csv"):
+                table = SqlaTable(table_name=form.name.data)
+                table.database = form.data.get('con')
+                table.database_id = table.database.id
+                table.database.db_engine_spec.create_table_from_csv(form, table)
+            elif csv_filename.lower().endswith("xls") or csv_filename.lower().endswith("xlsx"):
+                import xlrd
+                excel = xlrd.open_workbook(path)
+                table_name = form.name.data + "_" + excel.sheet_names()[0]
+                if database.has_table_ex(table_name, schema_name) and form.if_exists.data == 'replace':
+                    from ..db_engine_specs import BaseEngineSpec
+                    BaseEngineSpec.delete_table(table_name, schema_name, database.id)
+                table = SqlaTable(table_name=table_name)
+                table.database = form.data.get('con')
+                table.database_id = table.database.id
+                table.database.db_engine_spec.create_table_from_excel(form, path, table)
         except Exception as e:
             try:
                 os.remove(path)
@@ -400,7 +412,7 @@ class CsvToDatabaseView(SimpleFormView):
         os.remove(path)
         # Go back to welcome page / splash screen
         db_name = table.database.database_name
-        message = _('CSV file "{0}" uploaded to table "{1}" in '
+        message = _('Excel file "{0}" uploaded to table "{1}" in '
                     'database "{2}"'.format(csv_filename,
                                             form.name.data,
                                             db_name))
@@ -2976,8 +2988,8 @@ appbuilder.add_link(
 )
 
 appbuilder.add_link(
-    'Upload a CSV',
-    label=__('Upload a CSV'),
+    'Upload a Excel',
+    label=__('Upload a Excel'),
     href='/csvtodatabaseview/form',
     icon='fa-upload',
     category='Sources',

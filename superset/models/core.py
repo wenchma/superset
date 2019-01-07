@@ -960,6 +960,11 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return engine.has_table(
             table.table_name, table.schema or None)
 
+    def has_table_ex(self, table_name, schema):
+        engine = self.get_sqla_engine()
+        return engine.has_table(
+            table_name, schema or None)
+
     @utils.memoized
     def get_dialect(self):
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)

@@ -210,7 +210,7 @@ CORS_OPTIONS = {}
 
 # Allowed format types for upload on Database view
 # TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
-ALLOWED_EXTENSIONS = set(['csv'])
+ALLOWED_EXTENSIONS = set(['csv', 'xls', 'xlsx'])
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv method
 # note: index option should not be overridden

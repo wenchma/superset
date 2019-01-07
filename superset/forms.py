@@ -91,14 +91,14 @@ class CsvToDatabaseForm(DynamicForm):
 
     name = StringField(
         _('Table Name'),
-        description=_('Name of table to be created from csv data.'),
+        description=_('Name prefix of table to be created from excel data.The ultimate table name is [Name Prefix]_[Sheet Name]'),
         validators=[DataRequired()],
         widget=BS3TextFieldWidget())
     csv_file = FileField(
-        _('CSV File'),
-        description=_('Select a CSV file to be uploaded to a database.'),
+        _('Excel File'),
+        description=_('Select a Excel file to be uploaded to a database,Support xls,xlsx,csv.'),
         validators=[
-            FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
+            FileRequired(), FileAllowed(['csv', 'xls', 'xlsx'], _('CSV/XLS/XLSX Files Only!'))])
     con = QuerySelectField(
         _('Database'),
         query_factory=csv_allowed_dbs,
@@ -110,19 +110,19 @@ class CsvToDatabaseForm(DynamicForm):
         widget=BS3TextFieldWidget(),
         filters=[lambda x: x or None])
     sep = StringField(
-        _('Delimiter'),
-        description=_('Delimiter used by CSV file (for whitespace use \s+).'),
+        _('Delimiter/(Type Map)'),
+        description=_('Delimiter used by CSV file (for whitespace use \s+).Type Map userd by excel file(ex:{"field1":"varchar",..})'),
         validators=[DataRequired()],
         widget=BS3TextFieldWidget())
     if_exists = SelectField(
         _('Table Exists'),
         description=_(
             'If table exists do one of the following: '
-            'Fail (do nothing), Replace (drop and recreate table) '
-            'or Append (insert data).'),
+            'Fail (do nothing), Replace (drop and recreate table & metrics) '
+            'Append (insert data), or ReplaceData(just drop and recreate table.'),
         choices=[
             ('fail', _('Fail')), ('replace', _('Replace')),
-            ('append', _('Append'))],
+            ('append', _('Append')), ('repacedata',_('ReplaceData'))],
         validators=[DataRequired()])
     header = IntegerField(
         _('Header Row'),
