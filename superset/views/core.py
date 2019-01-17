@@ -30,7 +30,7 @@ from werkzeug.utils import secure_filename
 
 from superset import (
     app, appbuilder, cache, dashboard_import_export_util, db, results_backend,
-    security_manager, sql_lab, utils, viz)
+    security_manager, sql_lab, utils, viz, csrf)
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException
@@ -769,6 +769,43 @@ def healthcheck():
 @app.route('/ping')
 def ping():
     return 'OK'
+
+
+@csrf.exempt
+@app.route('/add_user_from_dbp', methods=['POST'])
+def add_user_from_dbp():
+    raw_user_info = request.data
+    user_info = json.loads(raw_user_info, encoding='utf-8')
+    try:
+        username = user_info.get('username', None)
+        first_name = user_info.get('first_name', None)
+        last_name = user_info.get('last_name', None)
+        email = user_info.get('email', None)
+        password = user_info.get('password', "")
+        user_role = user_info.get('role', config.get('CUSTOM_ROLE_NAME_KEYWORD'))
+
+        if not username and not email:
+            return json_error_response(
+                'username and email are missing.')
+        user = security_manager.find_user(username, email)
+        if user:
+            return json_error_response(
+                'User with name(%s) or email(%s) exist.' % (username, email))
+
+        role = security_manager.find_role(user_role)
+        if not role:
+            return json_error_response(
+                'Role with name(%s) not exist.' % (user_role,))
+        user = security_manager.add_user(username=username, first_name=first_name, last_name=last_name, email=email,
+                                         role=role, password=password)
+        resp = json_success(json.dumps(
+            {'user_id': user.id}, default=utils.json_int_dttm_ser,
+            ignore_nan=True), status=200)
+        return resp
+    except Exception:
+        return json_error_response(
+            'Error in call add_user_from_dbp.'
+            'The error message returned was:\n{}').format(traceback.format_exc())
 
 
 class KV(BaseSupersetView):
