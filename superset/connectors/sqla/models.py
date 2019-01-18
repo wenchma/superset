@@ -9,7 +9,7 @@ import pandas as pd
 import sqlalchemy as sa
 from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
-    select, String, Text,
+    select, String, Text, Date,
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
@@ -909,3 +909,17 @@ class SqlaTable(Model, BaseDatasource):
 
 sa.event.listen(SqlaTable, 'after_insert', security_manager.set_perm)
 sa.event.listen(SqlaTable, 'after_update', security_manager.set_perm)
+
+
+class NotificationTable(Model):
+
+    """An ORM object for SqlAlchemy table references"""
+
+    __tablename__ = 'fcm_email_notification_tables'
+
+    id = Column(Integer, primary_key=True)
+    msg_md5 = Column(String(64), nullable=False)
+    status = Column(Boolean, default=False)
+    msg = Column(Text)
+    msg_send_date = Column(DateTime)
+    table_id = Column(Integer)

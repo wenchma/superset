@@ -2,7 +2,7 @@
 """A set of constants and methods to manage permissions and security"""
 import logging
 
-from flask import g
+from flask import g, render_template
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from sqlalchemy import or_
@@ -10,6 +10,12 @@ from sqlalchemy import or_
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 
+import pandas as pd
+import datetime
+import hashlib
+import json
+
+from flask_mail import Message
 
 
 READ_ONLY_MODEL_VIEWS = {
@@ -73,6 +79,8 @@ OBJECT_SPEC_PERMISSIONS = set([
     'datasource_access',
     'metric_access',
 ])
+
+md5_handler = hashlib.md5()
 
 
 class SupersetSecurityManager(SecurityManager):
@@ -578,4 +586,97 @@ class SupersetSecurityManager(SecurityManager):
                 logging.info("add new permission-view to role %s" % app.config['CUSTOM_ROLE_NAME_KEYWORD'])
 
     def monitor_datetime_column(self):
-        pass
+        from superset import db
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import NotificationTable
+        #sesh = self.get_session
+        tables = db.session.query(SqlaTable).filter(SqlaTable.is_monitor).all()
+        for t in tables:
+            if t.monitor_dttm_column and t.notify_emails:
+                table_name = t.table_name
+                datetime_column = t.monitor_dttm_column
+                datetime_column = datetime_column.strip()
+                #notify_emails = t.notify_emails
+                threshold_of_day = t.threshold_of_day
+                #notify_template = t.notify_template
+                now = datetime.datetime.today()
+                now_str = now.strftime("%Y-%m-%d")
+                if threshold_of_day == 0:
+                    condition = (" date(%s)='%s'" % (datetime_column, now_str))
+                else:
+                    end_date = now + datetime.timedelta(days=threshold_of_day)
+                    end_date_str = end_date.strftime("%Y-%m-%d")
+                    condition = (" date(%s)>='%s' and date(%s)<='%s'" % (datetime_column, now_str, datetime_column, end_date_str))
+
+                try:
+                    # results = pd.read_sql_query("select * from " + table_name + " where " + condition, db.engine)
+                    for chunck in pd.read_sql_query("select * from " + table_name + " where " + condition, db.engine,
+                                                    chunksize=100):
+                        email_content_html = chunck.to_html()
+                        email_content = chunck.to_string()
+
+                        notification_item = NotificationTable()
+                        md5_handler.update(email_content.encode('utf-8'))
+                        notification_item.msg_md5 = md5_handler.hexdigest()
+                        notification_item.status = False
+                        notification_item.table_id = t.id
+                        notification_item.msg = email_content_html
+
+                        notify_have_send = None
+                        with db.session.no_autoflush:
+                            notify_have_send = db.session.query(NotificationTable).filter(
+                                NotificationTable.msg_md5 == notification_item.msg_md5,
+                                NotificationTable.status == False,
+                            ).first()
+                        if notify_have_send:
+                            logging.warn("notification with md5(%s) have send!" % notification_item.msg_md5)
+                            continue
+
+                        db.session.add(notification_item)
+                        #print(chunck)
+                    db.session.commit()
+                except Exception as e:
+                    e.with_traceback()
+                    logging.error(e)
+
+    def send_notification_email(self,app):
+        from superset import db, mail, config
+        from superset.connectors.sqla.models import SqlaTable, NotificationTable
+        try:
+            notifications = db.session.query(NotificationTable).filter(NotificationTable.status == False).all()
+            if notifications and len(notifications) > 0:
+                with app.app_context():
+                    with mail.connect() as conn:
+                        for notification in notifications:
+                            table = db.session.query(SqlaTable).filter(SqlaTable.id == notification.table_id).first()
+                            if not table:
+                                continue
+
+                            email_target = table.notify_emails.split(',')
+                            notify_template_json = None
+                            try:
+                                notify_template_json = json.loads(table.notify_template.encode('utf-8'))
+                            except Exception as e2:
+                                logging.warn("notification template is invalid")
+                            body_prefix = notify_template_json.get("body_prefix",
+                                                                   "    以下事项即将截止：") if notify_template_json else "    以下事项即将截止："
+                            body_suffix = notify_template_json.get("body_suffix", "") if notify_template_json else ""
+                            email_title = notify_template_json.get("title",
+                                                                   "有事项即将到期，请及时处理") if notify_template_json else "有事项即将到期，请及时处理"
+                            kwargs = {
+                                "body_prefix": body_prefix,
+                                "email_content_html": notification.msg,
+                                "body_suffix": body_suffix,
+                                "email_content": notification.msg
+                            }
+                            msg = Message(email_title, recipients=email_target)
+                            msg.body = render_template('email/task_expire_reminder.txt', **kwargs)
+                            msg.html = render_template('email/task_expire_reminder.html', **kwargs)
+                            conn.send(msg)
+                            notification.msg_send_date = datetime.datetime.today()
+                            notification.status = True
+                            db.session.merge(notification)
+
+                        db.session.commit()
+        except Exception as e:
+            logging.error(e)

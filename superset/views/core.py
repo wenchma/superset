@@ -808,6 +808,18 @@ def add_user_from_dbp():
             'The error message returned was:\n{}').format(traceback.format_exc())
 
 
+@csrf.exempt
+@app.route('/start_monitor_table_date_column', methods=['GET'])
+def monitor_table_date_column():
+    security_manager.monitor_datetime_column()
+    return json_success("Success")
+
+@csrf.exempt
+@app.route('/start_send_notification_email', methods=['GET'])
+def start_send_notification_email():
+    security_manager.send_notification_email()
+    return json_success("Success")
+
 class KV(BaseSupersetView):
 
     """Used for storing and retrieving key value pairs"""
