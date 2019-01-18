@@ -576,3 +576,6 @@ class SupersetSecurityManager(SecurityManager):
                     ),
                 )
                 logging.info("add new permission-view to role %s" % app.config['CUSTOM_ROLE_NAME_KEYWORD'])
+
+    def monitor_datetime_column(self):
+        pass

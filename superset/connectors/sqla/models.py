@@ -275,6 +275,11 @@ class SqlaTable(Model, BaseDatasource):
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
+    is_monitor = Column(Boolean, default=False)
+    notify_emails = Column(Text)
+    notify_template = Column(Text, default='{"title":"有事项即将到期，请及时处理","body_prefix":"以下事项即将截止：","body_suffix":""}')
+    monitor_dttm_column = Column(Text)
+    threshold_of_day = Column(Integer, default=1)
 
     baselink = 'tablemodelview'
 
