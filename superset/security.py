@@ -599,6 +599,7 @@ class SupersetSecurityManager(SecurityManager):
                 #notify_emails = t.notify_emails
                 threshold_of_day = t.threshold_of_day
                 #notify_template = t.notify_template
+                filter_condition = t.monitor_filter
                 now = datetime.datetime.today()
                 now_str = now.strftime("%Y-%m-%d")
                 if threshold_of_day == 0:
@@ -609,6 +610,8 @@ class SupersetSecurityManager(SecurityManager):
                     condition = (" date(%s)>='%s' and date(%s)<='%s'" % (datetime_column, now_str, datetime_column, end_date_str))
 
                 try:
+                    if filter_condition and len(filter_condition) > 0:
+                        condition = condition + " and " + filter_condition
                     # results = pd.read_sql_query("select * from " + table_name + " where " + condition, db.engine)
                     for chunck in pd.read_sql_query("select * from " + table_name + " where " + condition, db.engine,
                                                     chunksize=100):
