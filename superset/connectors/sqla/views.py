@@ -155,7 +155,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     list_columns = [
         'link', 'database_name',
-        'changed_by_', 'modified']
+        'changed_by_', 'modified', 'is_monitor']
     order_columns = ['modified']
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
@@ -164,6 +164,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout',
         'is_sqllab_view', 'template_params',
+        'is_monitor','notify_emails','notify_template','monitor_dttm_column','threshold_of_day'
     ]
     base_filters = [['id', DatasourceFilter, lambda: []]]
     show_columns = edit_columns + ['perm', 'slices']
@@ -217,6 +218,12 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
             'Duration (in seconds) of the caching timeout for this table. '
             'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the database timeout if undefined.'),
+        'is_monitor': _('Whether the table will be monitor?'),
+        'notify_emails': _('A set of email address notification will be send to, comma separated'),
+        'notify_template': _('The template will be use in email,Json style required,'
+                             'The Email Content consiting of body_prefix + bz data + body_suffix'),
+        'monitor_dttm_column': _('The datetime column will be monitor'),
+        'threshold_of_day': _('How long is the notification in advance?'),
     }
     label_columns = {
         'slices': _('Associated Charts'),
@@ -238,6 +245,11 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'is_sqllab_view': _('SQL Lab View'),
         'template_params': _('Template parameters'),
         'modified': _('Modified'),
+        'is_monitor': _('Enable Table Monitor'),
+        'notify_emails': _('Notification Email Address'),
+        'notify_template': _('Notification Email Template'),
+        'monitor_dttm_column': _('Monitor Datetime Column'),
+        'threshold_of_day': _('Notify Time Threshold'),
     }
 
     def pre_add(self, table):

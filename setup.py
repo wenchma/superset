@@ -67,6 +67,9 @@ setup(
         'flask-compress',
         'flask-migrate',
         'flask-wtf',
+        'flask-mail',
+        'apscheduler',
+        'tzlocal',
         'flower',  # deprecated
         'future>=0.16.0, <0.17',
         'geopy',

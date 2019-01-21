@@ -9,7 +9,7 @@ import pandas as pd
 import sqlalchemy as sa
 from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
-    select, String, Text,
+    select, String, Text, Date,
 )
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
@@ -275,6 +275,11 @@ class SqlaTable(Model, BaseDatasource):
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
     template_params = Column(Text)
+    is_monitor = Column(Boolean, default=False)
+    notify_emails = Column(Text)
+    notify_template = Column(Text, default='{"title":"有事项即将到期，请及时处理","body_prefix":"以下事项即将截止：","body_suffix":""}')
+    monitor_dttm_column = Column(Text)
+    threshold_of_day = Column(Integer, default=1)
 
     baselink = 'tablemodelview'
 
@@ -904,3 +909,17 @@ class SqlaTable(Model, BaseDatasource):
 
 sa.event.listen(SqlaTable, 'after_insert', security_manager.set_perm)
 sa.event.listen(SqlaTable, 'after_update', security_manager.set_perm)
+
+
+class NotificationTable(Model):
+
+    """An ORM object for SqlAlchemy table references"""
+
+    __tablename__ = 'fcm_email_notification_tables'
+
+    id = Column(Integer, primary_key=True)
+    msg_md5 = Column(String(64), nullable=False)
+    status = Column(Boolean, default=False)
+    msg = Column(Text)
+    msg_send_date = Column(DateTime)
+    table_id = Column(Integer)

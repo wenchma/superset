@@ -1,0 +1,13 @@
+
+Dear ,
+
+
+{{ body_prefix }}
+
+{{ email_content }}.
+
+
+{{ body_suffix }}
+
+
+Regards, Fcm Admin.
