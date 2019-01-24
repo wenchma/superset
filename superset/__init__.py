@@ -213,10 +213,16 @@ def send_job():
     print("I'm working for send")
 
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(monitor_job, CronTrigger.from_crontab(app.config.get('MONITOR_TASK_CRONTAB'))) #
-scheduler.add_job(send_job, CronTrigger.from_crontab(app.config.get('SEND_EMAIL_TASK_CRONTAB'))) #
-scheduler.start()
+try:
+    new_tmp_path = "/tmp/" + time.strftime('%Y-%m-%d-%H-%M', time.localtime(time.time()))
+    os.mkdir(new_tmp_path)
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(monitor_job, CronTrigger.from_crontab(app.config.get('MONITOR_TASK_CRONTAB'))) #
+    scheduler.add_job(send_job, CronTrigger.from_crontab(app.config.get('SEND_EMAIL_TASK_CRONTAB'))) #
+    scheduler.start()
+except FileExistsError as e:
+    print("Monitor process has started,skip create new monitor task...")
+
 
 # Flask-Compress
 if conf.get('ENABLE_FLASK_COMPRESS'):
