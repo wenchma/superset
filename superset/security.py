@@ -628,8 +628,7 @@ class SupersetSecurityManager(SecurityManager):
                         notify_have_send = None
                         with db.session.no_autoflush:
                             notify_have_send = db.session.query(NotificationTable).filter(
-                                NotificationTable.msg_md5 == notification_item.msg_md5,
-                                NotificationTable.status == False,
+                                NotificationTable.msg_md5 == notification_item.msg_md5
                             ).first()
                         if notify_have_send:
                             logging.warn("notification with md5(%s) have send!" % notification_item.msg_md5)
