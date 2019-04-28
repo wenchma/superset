@@ -32,14 +32,6 @@ RUN pip install --upgrade setuptools pip \
     && pip install -e . && pip install -r requirements-dev.txt \
     && rm -rf /root/.cache/pip
 
-USER 0
-RUN curl https://codeload.github.com/wenchma/Flask-CAS/tar.gz/internal -o /home/work/Flask-CAS.tar.gz \
-    && tar -zxvf /home/work/Flask-CAS.tar.gz -C /home/work \
-    && cd /home/work/Flask-CAS-internal \
-    && python setup.py install \
-    && cd /home/work \
-    && rm -rf Flask-CAS*
-
 USER work
 
 COPY --chown=work:work superset superset

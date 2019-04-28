@@ -1,6 +1,5 @@
 # pylint: disable=C,R,W
 """Package's main module!"""
-import flask_cas
 import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -33,7 +32,6 @@ with open(APP_DIR + '/static/assets/backendSync.json', 'r') as f:
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
-flask_cas.CAS(app)
 mail = Mail(app)
 
 #################################################################
