@@ -13,7 +13,7 @@ bleach==2.1.2
 boto3==1.4.7
 botocore==1.7.48
 cchardet==1.0.0           # via tabulator
-celery==4.2.0
+celery==5.2.2
 certifi==2018.8.24        # via requests
 cffi==1.11.5              # via cryptography
 chardet==3.0.4            # via requests
