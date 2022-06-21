@@ -57,7 +57,7 @@ linear-tsv==1.1.0         # via tabulator
 mako==1.0.7               # via alembic
 markdown==3.0
 markupsafe==1.0           # via jinja2, mako
-numpy==1.15.2             # via pandas
+numpy==1.22.0             # via pandas
 openpyxl==2.4.11          # via tabulator
 pandas==0.23.1
 parsedatetime==2.0.0
