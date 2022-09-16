@@ -54,7 +54,7 @@ jsonlines==1.2.0          # via tabulator
 jsonschema==2.6.0         # via tableschema
 kombu==4.2.1              # via celery
 linear-tsv==1.1.0         # via tabulator
-mako==1.0.7               # via alembic
+mako==1.2.2               # via alembic
 markdown==3.0
 markupsafe==1.0           # via jinja2, mako
 numpy==1.15.2             # via pandas
